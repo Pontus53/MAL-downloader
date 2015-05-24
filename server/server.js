@@ -6,30 +6,33 @@ var app     = express();
 
 app.get('/scrape', function(req, res){
 	// Let's scrape MAL
-	url = 'http://www.myanimelist.net/animelist/pontus53';
 
 	var headers = {
-    'User-Agent':       'Super Agent/0.0.1',
-    'Content-Type':     'application/x-www-form-urlencoded'
+    'User-Agent':       'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:38.0) Gecko/20100101 Firefox/38.0',
+    'Content-Type':     'text/html'
 	};
 
 	var options = {
-    	url: 'http://samwize.com',
-    	method: 'GET',
+    	url: 'http://myanimelist.net/animelist/pontus53',
     	headers: headers,
-    	qs: {'key1': 'xxx', 'key2': 'yyy'}
+    	jar: true
 	};
 
+	request.jar();
+	request.cookie('is_logged_in=1');
 
-	request(url, function(error, response, html){
+	request(options, function(error, response, html){
 		if(!error){
 			var $ = cheerio.load(html);
 
-			var title;
-			var json = { title : ""};
-
-			title = $('body').html();
-			console.log($('body').html());
+			var success = $('body').html().length;
+			if (success > 1000) {
+				console.log("Success!");
+				//Starts at 6
+				console.log($('#list_surround').children().eq(6).html());
+			} else {
+				console.log("Failure!");
+			};
 
 			/*$('#list_surround').filter(function(){
 		        var data = $(this);
@@ -38,10 +41,6 @@ app.get('/scrape', function(req, res){
 		        json.title = title;
 	        })*/
 		}
-
-		fs.writeFile('output.json', JSON.stringify(json, null, 4), function(err){
-        	console.log('File successfully written! - Check your project directory for the output.json file');
-        });
 
         res.send('Check your console!');
 	});
