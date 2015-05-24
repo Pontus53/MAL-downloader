@@ -4,8 +4,11 @@ var request = require('request');
 var cheerio = require('cheerio');
 var app     = express();
 
-app.get('/scrape', function(req, res){
+app.get('/scrape/*', function(req, res){
 	// Let's scrape MAL
+
+	var username = req.originalUrl.substr(8);
+	console.log(username);
 
 	var headers = {
     'User-Agent':       'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:38.0) Gecko/20100101 Firefox/38.0',
@@ -13,7 +16,7 @@ app.get('/scrape', function(req, res){
 	};
 
 	var options = {
-    	url: 'http://myanimelist.net/animelist/pontus53',
+    	url: 'http://myanimelist.net/animelist/' + username,
     	headers: headers,
     	jar: true
 	};
@@ -25,11 +28,29 @@ app.get('/scrape', function(req, res){
 		if(!error){
 			var $ = cheerio.load(html);
 
+			var title = [];
+			var episode = [];
+
 			var success = $('body').html().length;
 			if (success > 1000) {
 				console.log("Success!");
 				//Starts at 6
-				console.log($('#list_surround').children().eq(6).html());
+				var anime_number = 6;
+				while (!$('#list_surround').children().eq(anime_number).find('span').text() == "") {
+					if ($('#list_surround').children().eq(anime_number).find('span').text() == "Spcl.DL EpsDev.") {
+						break;
+					};
+
+					//Anime title
+					title.push($('#list_surround').children().eq(anime_number).find('span').text());
+					console.log(title[0].charAt(9));
+
+					//Episode number
+					var slash_pos = $('#list_surround').children().eq(anime_number).text().indexOf('/');
+					episode.push($('#list_surround').children().eq(anime_number).text().slice(slash_pos-3, slash_pos).replace(/\t/g, ""));
+
+					anime_number = anime_number + 2;
+				};
 			} else {
 				console.log("Failure!");
 			};
@@ -42,7 +63,8 @@ app.get('/scrape', function(req, res){
 	        })*/
 		}
 
-        res.send('Check your console!');
+        res.writeHead(200, {'Content-Type': 'text/html; charset=UTF-8'});
+  		res.end('<h3>Title: ' + title + '</h3>\n' + '<h3>Episode: ' + episode + '</h3>\n' + '<h3>Number of series: ' + episode.length + '</h3>\n');
 	});
 });
 
