@@ -15,7 +15,7 @@ app.get('/scrape/*', function(req, res){
     'Content-Type':     'text/html'
 	};
 
-	var options = {
+	var optionsMAL = {
     	url: 'http://myanimelist.net/animelist/' + username,
     	headers: headers,
     	jar: true
@@ -24,15 +24,15 @@ app.get('/scrape/*', function(req, res){
 	request.jar();
 	request.cookie('is_logged_in=1');
 
-	request(options, function(error, response, html){
+	var title = [];
+	var episode = [];
+	var download_link = [];
+
+	request(optionsMAL, function(error, response, html){
 		if(!error){
 			var $ = cheerio.load(html);
 
-			var title = [];
-			var episode = [];
-
-			var success = $('body').html().length;
-			if (success > 1000) {
+			if ($('body').html().length > 1000) {
 				console.log("Success!");
 				//Starts at 6
 				var anime_number = 6;
@@ -43,7 +43,6 @@ app.get('/scrape/*', function(req, res){
 
 					//Anime title
 					title.push($('#list_surround').children().eq(anime_number).find('span').text());
-					console.log(title[0].charAt(9));
 
 					//Episode number
 					var slash_pos = $('#list_surround').children().eq(anime_number).text().indexOf('/');
@@ -61,11 +60,30 @@ app.get('/scrape/*', function(req, res){
 
 		        json.title = title;
 	        })*/
-		}
-
-        res.writeHead(200, {'Content-Type': 'text/html; charset=UTF-8'});
-  		res.end('<h3>Title: ' + title + '</h3>\n' + '<h3>Episode: ' + episode + '</h3>\n' + '<h3>Number of series: ' + episode.length + '</h3>\n');
+		}     
 	});
+
+	//Loop to get all download links
+		for (i = 0; i < episode.length; i++) {
+
+			if (episode[i] < 10) {
+				episode[i] = "0" + episode[i];
+			}
+
+			var url = "http://www.nyaa.se/?page=search&cats=1_37&filter=2&term=" + title[i].replace(" ", "%20") + "&20" + episode[i];
+
+    		request(url, function(error, response, html){
+			if(!error){
+				var $ = cheerio.load(html);
+
+				download_link.push($('.tlistdownload').attr('href'));
+				console.log("Progress: " + i);
+			}
+			});
+
+		res.writeHead(200, {'Content-Type': 'text/html; charset=UTF-8'});
+  		res.end('<h3>Title: ' + title + '</h3>\n' + '<h3>Episode: ' + episode + '</h3>\n' + '<h3>Number of series: ' + episode.length + '</h3>\n' + '<h3>Download links: ' + download_link + '</h3>\n');
+	};
 });
 
 app.listen('8081');
